@@ -2,6 +2,7 @@ import os.path
 import json
 import subprocess
 import requests
+from time import sleep
 from github import Github
 from dotenv import load_dotenv
 
@@ -26,6 +27,7 @@ REPO_BRANCHES = os.environ.get("REPO_BRANCHES")
 REPOS_PATH = os.environ.get("REPOS_PATH")
 STATE_PATH = os.environ.get("STATE_PATH")
 KNOWN_HOSTS_PATH = os.environ.get("KNOWN_HOSTS_PATH")
+SYNC_TIME = os.environ.get("SYNC_TIME")
 
 g = Github(GITHUB_ACCESS_TOKEN)
 
@@ -187,4 +189,6 @@ def git_sync():
   with open(STATE_PATH, "w", encoding="utf-8") as jsonFile:
     json.dump(state, jsonFile, indent=2)
 
-git_sync()
+while True:
+  git_sync()
+  sleep(int(SYNC_TIME))
