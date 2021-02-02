@@ -11,6 +11,7 @@ GITHUB_ACCESS_TOKEN = os.environ.get("GITHUB_ACCESS_TOKEN")
 GITHUB_HANDLE = os.environ.get("GITHUB_HANDLE")
 GITHUB_KEY_TITLE = os.environ.get("GITHUB_KEY_TITLE")
 GITHUB_KEY_PATH = os.environ.get("GITHUB_KEY_PATH")
+GITHUB_URL = os.environ.get("GITHUB_URL")
 GITHUB_API_URL = os.environ.get("GITHUB_API_URL")
 
 GITLAB_ACCESS_TOKEN = os.environ.get("GITLAB_ACCESS_TOKEN")
@@ -24,6 +25,7 @@ GITLAB_HTTP_PORT = os.environ.get("GITLAB_HTTP_PORT")
 REPO_BRANCHES = os.environ.get("REPO_BRANCHES")
 REPOS_PATH = os.environ.get("REPOS_PATH")
 STATE_PATH = os.environ.get("STATE_PATH")
+KNOWN_HOSTS_PATH = os.environ.get("KNOWN_HOSTS_PATH")
 
 g = Github(GITHUB_ACCESS_TOKEN)
 
@@ -55,6 +57,21 @@ def add_github_key():
 
 def format_full_name(full_name):
   return full_name.replace("/", "-", 1)
+
+def add_known_host(host):
+  # Handle custom port case
+  if len(host.split(":")) == 2:
+    _host = host.split(':')[0]
+    _port = host.split(':')[1]
+    subprocess.call(
+      f"ssh-keyscan -p {_port} -H {_host} >> {KNOWN_HOSTS_PATH}",
+      shell=True
+    )
+  else:
+    subprocess.call(
+      f"ssh-keyscan -H {host} >> {KNOWN_HOSTS_PATH}",
+      shell=True
+    )
 
 def add_remote(repo_path, repo_name):
   subprocess.call(
@@ -111,50 +128,63 @@ def push_repo(repo_path):
       if index == len(branches) - 1:
         print(f"Failed to push repo {repo_path}. Did not find default branch.")
 
-state = {
-  "is_github_key_added": False,
-  "repos": {}
-}
+def git_sync():
+  state = {
+    "is_github_key_added": False,
+    "is_github_known_host": False,
+    "is_gitlab_known_host": False,
+    "repos": {}
+  }
 
-if os.path.isfile(STATE_PATH):
-  with open(STATE_PATH, "r", encoding="utf-8") as jsonFile:
-    state = json.load(jsonFile)
+  if os.path.isfile(STATE_PATH):
+    with open(STATE_PATH, "r", encoding="utf-8") as jsonFile:
+      state = json.load(jsonFile)
 
-if state.get("is_github_key_added") != True:
-  if add_github_key():
-    state["is_github_key_added"] = True
-  else:
-    raise Exception("GitHub key was not added.")
+  if state.get("is_github_key_added") != True:
+    if add_github_key():
+      state["is_github_key_added"] = True
+    else:
+      raise Exception("GitHub key was not added.")
 
-# index = 0
-for repo in g.get_user().get_repos():
-  # index += 1
-  full_name = format_full_name(repo.full_name)
-  ssh_url = repo.ssh_url
-  pushed_at = repo.pushed_at.timestamp()
-  repo_path = os.path.join(REPOS_PATH, full_name)
+  if state.get("is_github_known_host") != True:
+    add_known_host(GITHUB_URL)
+    state["is_github_known_host"] = True
 
-  # if "gatsby" in repo_path:
-  #   continue
+  if state.get("is_gitlab_known_host") != True:
+    add_known_host(f"{GITLAB_URL}:{GITLAB_SSH_PORT}")
+    state["is_gitlab_known_host"] = True
 
-  if not os.path.isdir(repo_path):
-    print("Repo was not cloned.")
-    clone_repo(repo_path, ssh_url)
-    create_project(full_name)
-    add_remote(repo_path, full_name)
-  elif pushed_at > state["repos"][full_name]["updated"]:
-    print("Repo was updated since the last download.")
-    pull_repo(repo_path)
+  index = 0
+  for repo in g.get_user().get_repos():
+    index += 1
+    full_name = format_full_name(repo.full_name)
+    ssh_url = repo.ssh_url
+    pushed_at = repo.pushed_at.timestamp()
+    repo_path = os.path.join(REPOS_PATH, full_name)
 
-  if full_name not in state:
-    state["repos"][full_name] = {}
+    if "gatsby" in repo_path:
+      continue
 
-  state["repos"][full_name]["updated"] = pushed_at
+    if not os.path.isdir(repo_path):
+      print("Repo was not cloned.")
+      clone_repo(repo_path, ssh_url)
+      create_project(full_name)
+      add_remote(repo_path, full_name)
+    elif pushed_at > state["repos"][full_name]["updated"]:
+      print("Repo was updated since the last download.")
+      pull_repo(repo_path)
 
-  push_repo(repo_path)
+    if full_name not in state:
+      state["repos"][full_name] = {}
 
-  # if index >= 20:
-  #   break;
+    state["repos"][full_name]["updated"] = pushed_at
 
-with open(STATE_PATH, "w", encoding="utf-8") as jsonFile:
-  json.dump(state, jsonFile, indent=2)
+    push_repo(repo_path)
+
+    if index >= 10:
+      break;
+
+  with open(STATE_PATH, "w", encoding="utf-8") as jsonFile:
+    json.dump(state, jsonFile, indent=2)
+
+git_sync()
