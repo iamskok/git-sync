@@ -12,7 +12,6 @@ Create GitHub [access token](https://github.com/settings/tokens/new) with `admin
 docker build \
   --build-arg ssh_private_key="$(cat ~/.ssh/id_rsa)" \
   --build-arg ssh_public_key="$(cat ~/.ssh/id_rsa.pub)" \
-  --tag git-sync .
-
-docker run -it --env-file=".env" git-sync
+  --tag git-sync . && \
+  docker run -it --env-file=".env" git-sync
 ```
