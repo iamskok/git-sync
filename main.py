@@ -156,16 +156,11 @@ def git_sync():
     add_known_host(f"{GITLAB_URL}:{GITLAB_SSH_PORT}")
     state["is_gitlab_known_host"] = True
 
-  index = 0
   for repo in g.get_user().get_repos():
-    index += 1
     full_name = format_full_name(repo.full_name)
     ssh_url = repo.ssh_url
     pushed_at = repo.pushed_at.timestamp()
     repo_path = os.path.join(REPOS_PATH, full_name)
-
-    if "gatsby" in repo_path:
-      continue
 
     if not os.path.isdir(repo_path):
       print("Repo was not cloned.")
@@ -182,9 +177,6 @@ def git_sync():
     state["repos"][full_name]["updated"] = pushed_at
 
     push_repo(repo_path)
-
-    if index >= 10:
-      break;
 
   with open(STATE_PATH, "w", encoding="utf-8") as jsonFile:
     json.dump(state, jsonFile, indent=2)
