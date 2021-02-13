@@ -2,7 +2,7 @@ import os.path
 import json
 import subprocess
 import requests
-from time import sleep
+from time import sleep, time
 from github import Github
 from dotenv import load_dotenv
 
@@ -14,6 +14,7 @@ GITHUB_KEY_TITLE = os.environ.get("GITHUB_KEY_TITLE")
 GITHUB_KEY_PATH = os.environ.get("GITHUB_KEY_PATH")
 GITHUB_URL = os.environ.get("GITHUB_URL")
 GITHUB_API_URL = os.environ.get("GITHUB_API_URL")
+GITHUB_RATE_LIMIT = os.environ.get("GITHUB_RATE_LIMIT")
 
 GITLAB_ACCESS_TOKEN = os.environ.get("GITLAB_ACCESS_TOKEN")
 GITLAB_HANDLE = os.environ.get("GITLAB_HANDLE")
@@ -31,7 +32,7 @@ SYNC_TIME = os.environ.get("SYNC_TIME")
 
 g = Github(GITHUB_ACCESS_TOKEN)
 
-def get_key_content():
+def get_ssh_key_content():
   try:
     with open(GITHUB_KEY_PATH, "r", encoding="utf-8") as key:
       return key.read()
@@ -46,7 +47,7 @@ def add_github_key():
       "Authorization": f"token {GITHUB_ACCESS_TOKEN}",
     },
     json={
-      "key": get_key_content(),
+      "key": get_ssh_key_content(),
       "title": GITHUB_KEY_TITLE
     }
   )
@@ -75,25 +76,25 @@ def add_known_host(host):
       shell=True
     )
 
-def add_remote(repo_path, repo_name):
+def add_gitlab_remote(repo_path, repo_name):
   subprocess.call(
     f"cd {repo_path} && git remote add {GITLAB_REMOTE} ssh://git@{GITLAB_URL}:{GITLAB_SSH_PORT}/{GITLAB_HANDLE}/{repo_name}",
     shell=True
   )
 
-def clone_repo(repo_path, ssh_url):
+def clone_github_repo(repo_path, ssh_url):
   subprocess.call(
     f"git clone {ssh_url} {repo_path}",
     shell=True
   )
 
-def pull_repo(repo_path):
+def pull_github_repo(repo_path):
   subprocess.call(
     f"cd {repo_path} && git pull",
     shell=True
   )
 
-def create_project(repo_name):
+def create_gitlab_project(repo_name):
   response = requests.post(
     f"{GITLAB_URL_PROTOCOL}://{GITLAB_URL}:{GITLAB_HTTP_PORT}/api/v4/projects?name={repo_name}",
     headers={
@@ -130,7 +131,44 @@ def push_repo(repo_path):
       if index == len(branches) - 1:
         print(f"Failed to push repo {repo_path}. Did not find default branch.")
 
+class GithubLimitsException(Exception):
+  pass
+
+class GithubRateLimiter:
+  def __init__(self):
+    self.reset_timestamp = None
+    self.remaining = None
+    self.init_limits()
+
+  def init_limits(self):
+    response = requests.get(
+      f"{GITHUB_API_URL}/rate_limit",
+      headers={
+        "Authorization": f"token {GITHUB_ACCESS_TOKEN}"
+      }
+    )
+    if response.status_code == 200:
+      rate_limit = response.json()["resources"]["core"]
+      self.reset_timestamp = rate_limit["reset"]
+      self.remaining = rate_limit["remaining"]
+    else:
+      raise GithubLimitsException(f"{GITHUB_API_URL}/rate_limit returned non 200 status code")
+
+  def update_remaining(self):
+    if self.remaining > 0:
+      self.remaining -= 1
+    else:
+      t1 = self.reset_timestamp
+      t2 = time()
+      delta_t = t1 - t2
+      if delta_t > 0:
+        sleep(delta_t)
+      self.init_limits()
+
+
 def git_sync():
+  gh_limiter = GithubRateLimiter()
+
   state = {
     "is_github_key_added": False,
     "is_github_known_host": False,
@@ -145,6 +183,7 @@ def git_sync():
   if state.get("is_github_key_added") != True:
     if add_github_key():
       state["is_github_key_added"] = True
+      gh_limiter.update_remaining()
     else:
       raise Exception("GitHub key was not added.")
 
@@ -156,7 +195,10 @@ def git_sync():
     add_known_host(f"{GITLAB_URL}:{GITLAB_SSH_PORT}")
     state["is_gitlab_known_host"] = True
 
+  index = 0
   for repo in g.get_user().get_repos():
+    gh_limiter.update_remaining()
+
     full_name = format_full_name(repo.full_name)
     ssh_url = repo.ssh_url
     pushed_at = repo.pushed_at.timestamp()
@@ -164,12 +206,12 @@ def git_sync():
 
     if not os.path.isdir(repo_path):
       print("Repo was not cloned.")
-      clone_repo(repo_path, ssh_url)
-      create_project(full_name)
-      add_remote(repo_path, full_name)
+      clone_github_repo(repo_path, ssh_url)
+      create_gitlab_project(full_name)
+      add_gitlab_remote(repo_path, full_name)
     elif pushed_at > state["repos"][full_name]["updated"]:
       print("Repo was updated since the last download.")
-      pull_repo(repo_path)
+      pull_github_repo(repo_path)
 
     if full_name not in state:
       state["repos"][full_name] = {}
@@ -178,8 +220,8 @@ def git_sync():
 
     push_repo(repo_path)
 
-  with open(STATE_PATH, "w", encoding="utf-8") as jsonFile:
-    json.dump(state, jsonFile, indent=2)
+    with open(STATE_PATH, "w", encoding="utf-8") as jsonFile:
+      json.dump(state, jsonFile, indent=2)
 
 while True:
   git_sync()
