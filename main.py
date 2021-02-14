@@ -64,8 +64,8 @@ def format_full_name(full_name):
 def add_known_host(host):
   # Handle custom port case
   if len(host.split(":")) == 2:
-    _host = host.split(':')[0]
-    _port = host.split(':')[1]
+    _host = host.split(":")[0]
+    _port = host.split(":")[1]
     subprocess.call(
       f"ssh-keyscan -p {_port} -H {_host} >> {KNOWN_HOSTS_PATH}",
       shell=True
@@ -166,36 +166,69 @@ class GithubRateLimiter:
       self.init_limits()
 
 
+class State():
+  def __init__(self):
+    self.is_github_key_added = False
+    self.is_github_known_host = False
+    self.is_gitlab_known_host = False
+    self.repos = {}
+    self.read()
+
+  def get_repo_attr(self, name, attr):
+    if self.repos.get(name) is None or self.repos[name].get(attr) is None:
+      return None
+
+    return self.repos[name][attr]
+
+  def update(self, key, value=True):
+    self.__dict__[key] = value
+    self.write()
+
+  def update_repo(self, name, key, value=True):
+    if name not in self.repos:
+      self.repos[name] = {}
+
+    self.repos[name][key] = value
+    self.write()
+
+  def write(self):
+    data = {
+      "is_github_key_added": self.is_github_key_added,
+      "is_github_known_host": self.is_github_known_host,
+      "is_gitlab_known_host": self.is_gitlab_known_host,
+      "repos": self.repos,
+    }
+    with open(STATE_PATH, "w", encoding="utf-8") as jsonFile:
+      json.dump(data, jsonFile, indent=2)
+
+  def read(self):
+    if os.path.isfile(STATE_PATH):
+      with open(STATE_PATH, "r", encoding="utf-8") as jsonFile:
+        data = json.load(jsonFile)
+        self.is_github_key_added = data["is_github_key_added"]
+        self.is_github_known_host = data["is_github_known_host"]
+        self.is_gitlab_known_host = data["is_gitlab_known_host"]
+        self.repos = data["repos"]
+
 def git_sync():
+  state = State()
   gh_limiter = GithubRateLimiter()
 
-  state = {
-    "is_github_key_added": False,
-    "is_github_known_host": False,
-    "is_gitlab_known_host": False,
-    "repos": {}
-  }
-
-  if os.path.isfile(STATE_PATH):
-    with open(STATE_PATH, "r", encoding="utf-8") as jsonFile:
-      state = json.load(jsonFile)
-
-  if state.get("is_github_key_added") != True:
+  if state.is_github_key_added != True:
     if add_github_key():
-      state["is_github_key_added"] = True
+      state.update("is_github_key_added")
       gh_limiter.update_remaining()
     else:
       raise Exception("GitHub key was not added.")
 
-  if state.get("is_github_known_host") != True:
+  if state.is_github_known_host != True:
     add_known_host(GITHUB_URL)
-    state["is_github_known_host"] = True
+    state.update("is_github_known_host")
 
-  if state.get("is_gitlab_known_host") != True:
+  if state.is_gitlab_known_host != True:
     add_known_host(f"{GITLAB_URL}:{GITLAB_SSH_PORT}")
-    state["is_gitlab_known_host"] = True
+    state.update("is_gitlab_known_host")
 
-  index = 0
   for repo in g.get_user().get_repos():
     gh_limiter.update_remaining()
 
@@ -207,21 +240,23 @@ def git_sync():
     if not os.path.isdir(repo_path):
       print("Repo was not cloned.")
       clone_github_repo(repo_path, ssh_url)
-      create_gitlab_project(full_name)
-      add_gitlab_remote(repo_path, full_name)
-    elif pushed_at > state["repos"][full_name]["updated"]:
+      if state.get_repo_attr(full_name, "is_gitlab_project_created") != True:
+        create_gitlab_project(full_name)
+        state.update_repo(full_name, "is_gitlab_project_created")
+
+      if state.get_repo_attr(full_name, "is_gitlab_remote_created") != True:
+        add_gitlab_remote(repo_path, full_name)
+        state.update_repo(full_name, "is_gitlab_remote_created")
+
+    elif pushed_at > state.get_repo_attr(full_name, "updated"):
       print("Repo was updated since the last download.")
       pull_github_repo(repo_path)
 
-    if full_name not in state:
-      state["repos"][full_name] = {}
+    state.update_repo(full_name, "updated", pushed_at)
 
-    state["repos"][full_name]["updated"] = pushed_at
-
-    push_repo(repo_path)
-
-    with open(STATE_PATH, "w", encoding="utf-8") as jsonFile:
-      json.dump(state, jsonFile, indent=2)
+    if state.get_repo_attr(full_name, "is_pushed_to_gitlab") != True:
+      push_repo(repo_path)
+      state.update_repo(full_name, "is_pushed_to_gitlab")
 
 while True:
   git_sync()
