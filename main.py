@@ -78,7 +78,8 @@ def add_known_host(host):
 
 def add_gitlab_remote(repo_path, repo_name):
   subprocess.call(
-    f"cd {repo_path} && git remote add {GITLAB_REMOTE} ssh://git@{GITLAB_URL}:{GITLAB_SSH_PORT}/{GITLAB_HANDLE}/{repo_name}",
+    f"cd {repo_path} && \
+      git remote add {GITLAB_REMOTE} ssh://git@{GITLAB_URL}:{GITLAB_SSH_PORT}/{GITLAB_HANDLE}/{repo_name}",
     shell=True
   )
 
@@ -90,7 +91,9 @@ def clone_github_repo(repo_path, ssh_url):
 
 def pull_github_repo(repo_path):
   subprocess.call(
-    f"cd {repo_path} && git pull",
+    f"cd {repo_path} && \
+      git fetch --all && \
+      git pull",
     shell=True
   )
 
@@ -110,26 +113,24 @@ def create_gitlab_project(repo_name):
     raise Exception(f"API call for creating {repo_name} project failed in GitLab.")
 
 def push_repo(repo_path):
-  branches = REPO_BRANCHES.split(",")
-  check_branch = "git rev-parse --verify"
+  all_remote_branches = subprocess.check_output(
+    f"cd {repo_path} && \
+      git branch --remote",
+    shell=True
+  ).decode("utf-8").split("\n")
 
-  for index, branch in enumerate(branches):
-    try:
-      subprocess.check_output(
-        f"cd {repo_path} && {check_branch} {branch}",
-        stderr=subprocess.DEVNULL,
-        shell=True,
-      )
-      subprocess.call(
-        f"cd {repo_path} && git push --force {GITLAB_REMOTE} {branch}",
-        stderr=subprocess.DEVNULL,
-        shell=True,
-      )
-      print(f"{repo_path.replace(REPOS_PATH + '/', '')} was successfully pushed in Gitlab.")
-      break
-    except subprocess.CalledProcessError:
-      if index == len(branches) - 1:
-        print(f"Failed to push repo {repo_path}. Did not find default branch.")
+  default_branch = [branch.split("->")[1].split("/")[1].strip() for branch in all_remote_branches if "->" in branch][0]
+  all_remote_branches = [branch.strip().split("/")[1] for branch in all_remote_branches if branch.strip() and "->" not in branch]
+
+  for branch in all_remote_branches:
+    subprocess.call(
+      f"cd {repo_path} && \
+        git fetch --all && \
+        git checkout {'-b' if branch != default_branch else ''} {branch} -- && \
+        git push --force {GITLAB_REMOTE} {branch}",
+      stderr=subprocess.DEVNULL,
+      shell=True,
+    )
 
 class GithubLimitsException(Exception):
   pass
@@ -251,6 +252,7 @@ def git_sync():
     elif pushed_at > state.get_repo_attr(full_name, "updated"):
       print("Repo was updated since the last download.")
       pull_github_repo(repo_path)
+      state.update_repo(full_name, "is_pushed_to_gitlab", False)
 
     state.update_repo(full_name, "updated", pushed_at)
 
