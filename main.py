@@ -14,7 +14,6 @@ GITHUB_KEY_TITLE = os.environ.get("GITHUB_KEY_TITLE")
 GITHUB_KEY_PATH = os.environ.get("GITHUB_KEY_PATH")
 GITHUB_URL = os.environ.get("GITHUB_URL")
 GITHUB_API_URL = os.environ.get("GITHUB_API_URL")
-GITHUB_RATE_LIMIT = os.environ.get("GITHUB_RATE_LIMIT")
 
 GITLAB_ACCESS_TOKEN = os.environ.get("GITLAB_ACCESS_TOKEN")
 GITLAB_HANDLE = os.environ.get("GITLAB_HANDLE")
@@ -24,8 +23,8 @@ GITLAB_URL_PROTOCOL = os.environ.get("GITLAB_URL_PROTOCOL")
 GITLAB_SSH_PORT = os.environ.get("GITLAB_SSH_PORT")
 GITLAB_HTTP_PORT = os.environ.get("GITLAB_HTTP_PORT")
 
-REPO_BRANCHES = os.environ.get("REPO_BRANCHES")
 REPOS_PATH = os.environ.get("REPOS_PATH")
+REPOS_BLACKLIST = os.environ.get("REPOS_BLACKLIST")
 STATE_PATH = os.environ.get("STATE_PATH")
 KNOWN_HOSTS_PATH = os.environ.get("KNOWN_HOSTS_PATH")
 SYNC_TIME = os.environ.get("SYNC_TIME")
@@ -211,6 +210,9 @@ class State():
         self.is_gitlab_known_host = data["is_gitlab_known_host"]
         self.repos = data["repos"]
 
+def is_repo_blacklisted(repo, blacklist=REPOS_BLACKLIST):
+  return True if repo in blacklist.split(",") else False
+
 def git_sync():
   state = State()
   gh_limiter = GithubRateLimiter()
@@ -232,33 +234,35 @@ def git_sync():
 
   for repo in g.get_user().get_repos():
     gh_limiter.update_remaining()
+    name = repo.full_name
 
-    full_name = format_full_name(repo.full_name)
-    ssh_url = repo.ssh_url
-    pushed_at = repo.pushed_at.timestamp()
-    repo_path = os.path.join(REPOS_PATH, full_name)
+    if not is_repo_blacklisted(name):
+      full_name = format_full_name(name)
+      ssh_url = repo.ssh_url
+      pushed_at = repo.pushed_at.timestamp()
+      repo_path = os.path.join(REPOS_PATH, full_name)
 
-    if not os.path.isdir(repo_path):
-      print("Repo was not cloned.")
-      clone_github_repo(repo_path, ssh_url)
-      if state.get_repo_attr(full_name, "is_gitlab_project_created") != True:
-        create_gitlab_project(full_name)
-        state.update_repo(full_name, "is_gitlab_project_created")
+      if not os.path.isdir(repo_path):
+        print("Repo was not cloned.")
+        clone_github_repo(repo_path, ssh_url)
+        if state.get_repo_attr(full_name, "is_gitlab_project_created") != True:
+          create_gitlab_project(full_name)
+          state.update_repo(full_name, "is_gitlab_project_created")
 
-      if state.get_repo_attr(full_name, "is_gitlab_remote_created") != True:
-        add_gitlab_remote(repo_path, full_name)
-        state.update_repo(full_name, "is_gitlab_remote_created")
+        if state.get_repo_attr(full_name, "is_gitlab_remote_created") != True:
+          add_gitlab_remote(repo_path, full_name)
+          state.update_repo(full_name, "is_gitlab_remote_created")
 
-    elif pushed_at > state.get_repo_attr(full_name, "updated"):
-      print("Repo was updated since the last download.")
-      pull_github_repo(repo_path)
-      state.update_repo(full_name, "is_pushed_to_gitlab", False)
+      elif pushed_at > state.get_repo_attr(full_name, "updated"):
+        print("Repo was updated since the last download.")
+        pull_github_repo(repo_path)
+        state.update_repo(full_name, "is_pushed_to_gitlab", False)
 
-    state.update_repo(full_name, "updated", pushed_at)
+      state.update_repo(full_name, "updated", pushed_at)
 
-    if state.get_repo_attr(full_name, "is_pushed_to_gitlab") != True:
-      push_repo(repo_path)
-      state.update_repo(full_name, "is_pushed_to_gitlab")
+      if state.get_repo_attr(full_name, "is_pushed_to_gitlab") != True:
+        push_repo(repo_path)
+        state.update_repo(full_name, "is_pushed_to_gitlab")
 
 while True:
   git_sync()
