@@ -6,6 +6,10 @@ GitHub ➡️ GitLab
 
 Create GitHub [access token](https://github.com/settings/tokens/new) with `admin:public_key` and `repo` scope.
 
+## Environment variables
+
+Copy and rename `.env.sample` and update.
+
 ## Build Docker Image
 
 ```
