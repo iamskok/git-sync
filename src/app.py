@@ -5,6 +5,8 @@ import requests
 from time import sleep, time
 from github import Github
 from dotenv import load_dotenv
+from .logger import create_logger
+from .enums import HttpStatusCode
 
 load_dotenv()
 
@@ -30,6 +32,7 @@ KNOWN_HOSTS_PATH = os.environ.get("KNOWN_HOSTS_PATH")
 SYNC_TIME = os.environ.get("SYNC_TIME")
 
 g = Github(GITHUB_ACCESS_TOKEN)
+logger = create_logger()
 
 def get_ssh_key_content():
   try:
@@ -53,8 +56,8 @@ def add_github_key():
 
   # Check if SSH key was created or has previously been registered.
   return (
-    response.status_code == 201 or
-    response.status_code == 422
+    response.status_code == HttpStatusCode.CREATED.value or
+    response.status_code == HttpStatusCode.UNPROCESSABLE_ENTITY.value
   )
 
 def format_full_name(full_name):
@@ -104,9 +107,9 @@ def create_gitlab_project(repo_name):
     }
   )
 
-  if response.status_code == 201:
+  if response.status_code == HttpStatusCode.CREATED.value:
     print(f"{repo_name} project was succesfully created in GitLab.")
-  elif response.status_code == 400:
+  elif response.status_code == HttpStatusCode.BAD_REQUEST.value:
     print(f"{repo_name} project has already been registered in GitLab.")
   else:
     raise Exception(f"API call for creating {repo_name} project failed in GitLab.")
@@ -147,7 +150,7 @@ class GithubRateLimiter:
         "Authorization": f"token {GITHUB_ACCESS_TOKEN}"
       }
     )
-    if response.status_code == 200:
+    if response.status_code == HttpStatusCode.OK.value:
       rate_limit = response.json()["resources"]["core"]
       self.reset_timestamp = rate_limit["reset"]
       self.remaining = rate_limit["remaining"]
