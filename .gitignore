@@ -2,3 +2,5 @@
 TODO.md
 state.json
 repos
+*.log
+__pycache__
