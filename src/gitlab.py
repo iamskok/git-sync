@@ -40,7 +40,6 @@ def push_gitlab_repo(repo_path):
       f"git checkout {'-b' if branch != default_branch else ''} {branch} --",
       f"git push --force {GITLAB_REMOTE} {branch}",
     ])
-    print("xxx", command)
     subprocess.call(
       command,
       stderr=subprocess.DEVNULL,
