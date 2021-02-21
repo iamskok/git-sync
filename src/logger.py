@@ -10,39 +10,43 @@ load_dotenv()
 STREAM_LOG_LEVEL = os.environ.get("STREAM_LOG_LEVEL")
 FILE_BACKUP_COUNT = os.environ.get("FILE_BACKUP_COUNT")
 LOG_ROTATION_TIME = os.environ.get("LOG_ROTATION_TIME")
-LOGS_DIRECTORY=os.environ.get("LOGS_DIRECTORY")
+LOGS_DIRECTORY = os.environ.get("LOGS_DIRECTORY")
 
 logging.getLogger("urllib3").propagate = False
 
-log_formatter = "[%(levelname)s] (%(asctime)s) %(message)s"
-date_formatter = "%Y-%m-%d %H:%M:%S"
 
-def _format_log_paths(directory=LOGS_DIRECTORY, levels=LOG_LEVELS):
-  for name, path in LOG_LEVELS.items():
-    path = os.path.join(directory, path)
-    levels[name] = path
+def _format_log_paths(directory=LOGS_DIRECTORY, levels=LOG_LEVELS.copy()):
+    for name, path in LOG_LEVELS.items():
+        path = os.path.join(directory, path)
+        levels[name] = path
 
-  return levels
+    return levels
 
-def create_logger(name="git-sync", directory=LOGS_DIRECTORY, levels=LOG_LEVELS):
-  logger = logging.getLogger(name)
-  levels = _format_log_paths(directory, levels)
 
-  for level, path in levels.items():
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    formatter = logging.Formatter(log_formatter, date_formatter)
+def create_logger(
+        name="git-sync",
+        directory=LOGS_DIRECTORY,
+        levels=LOG_LEVELS.copy()):
+    logger = logging.getLogger(name)
+    levels = _format_log_paths(directory, levels)
+    log_formatter = "[%(levelname)s] (%(asctime)s) %(message)s"
+    date_formatter = "%Y-%m-%d %H:%M:%S"
 
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(getattr(logging, STREAM_LOG_LEVEL, "INFO"))
-    stream_handler.setFormatter(formatter)
+    for level, path in levels.items():
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        formatter = logging.Formatter(log_formatter, date_formatter)
 
-    file_handler = logging.handlers.TimedRotatingFileHandler(
-      filename=path,
-      when=LOG_ROTATION_TIME if LOG_ROTATION_TIME else "midnight",
-      backupCount=int(FILE_BACKUP_COUNT) if FILE_BACKUP_COUNT else 30
-    )
-    file_handler.setFormatter(formatter)
-    file_handler.setLevel(getattr(logging, level))
-    logger.addHandler(file_handler)
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(getattr(logging, STREAM_LOG_LEVEL, "INFO"))
+        stream_handler.setFormatter(formatter)
 
-  return logger
+        file_handler = logging.handlers.TimedRotatingFileHandler(
+            filename=path,
+            when=LOG_ROTATION_TIME if LOG_ROTATION_TIME else "midnight",
+            backupCount=int(FILE_BACKUP_COUNT) if FILE_BACKUP_COUNT else 30
+        )
+        file_handler.setFormatter(formatter)
+        file_handler.setLevel(getattr(logging, level))
+        logger.addHandler(file_handler)
+
+    return logger
