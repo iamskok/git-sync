@@ -1,22 +1,26 @@
-# Git Sync
+# Git Sync (GitHub ➡️ GitLab)
 
-GitHub ➡️ GitLab
+Backup all GitHub repositories in GitLab.
 
-## Prerequisites
+## Preinstallation
 
-Create GitHub[access token](https://github.com/settings/tokens/new) with `admin:public_key` and `repo` scope.
+- Create GitHub [access token](https://github.com/settings/tokens/new) with `admin:public_key` and `repo` scope.
+- Copy and rename `.env.sample` in the root directory and update it's values.
 
-## Environment variables
+## Docker Installation
 
-Copy and rename `.env.sample` and update.
-
-## Build Docker Image
+Assuming SSH keys are stored in `~/.ssh` directory.
 
 ```
 docker build \
     --build-arg ssh_private_key="$(cat ~/.ssh/id_rsa)" \
     --build-arg ssh_public_key="$(cat ~/.ssh/id_rsa.pub)" \
-    --tag git-sync . && \
+    --tag git-sync .
+```
+
+## Docker usage
+
+```sh
 docker run -it \
     --env-file=".env" \
     -v $PWD/repos:/app/repos \
@@ -24,11 +28,30 @@ docker run -it \
     git-sync
 ```
 
-## Format and Lint
+## Default Installation
 
 ```sh
-autopep8 --in-place --recursive .
-find . -type f -name "*.py" | xargs pylint
-hadolint Dockerfile
-dockerfilelint Dockerfile
+pip3 install -r requirements.txt
 ```
+
+## Default Usage
+
+```sh
+python3 index.py
+```
+
+## `manage.py` scripts
+
+```sh
+python3 manage.py --<flag>
+```
+
+| Flag                 | Description                                      |
+| -------------------- | ------------------------------------------------ |
+| `--install`, `-i`    | Install `pip3`, `yarn`, and `docker` dependecies |
+| `--lint`, `-l`       | Lint python files                                |
+| `--format`, `-f`     | Format python files                              |
+| `--commitlint`, `-c` | Lint commit message                              |
+| `--dockerlint`, `-d` | Lint `Dockerfile`                                |
+| `--prettier`, `-p`   | Format `json` and `md` file                      |
+| `--test`, `-t`       | Run unit tests                                   |
