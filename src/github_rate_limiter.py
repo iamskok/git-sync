@@ -11,7 +11,7 @@ GITHUB_ACCESS_TOKEN = os.environ.get("GITHUB_ACCESS_TOKEN")
 GITLAB_ACCESS_TOKEN = os.environ.get("GITLAB_ACCESS_TOKEN")
 
 
-class GithubLimitsException(Exception):
+class GithubLimitsError(Exception):
     pass
 
 
@@ -33,7 +33,7 @@ class GithubRateLimiter:
             self.reset_timestamp = rate_limit["reset"]
             self.remaining = rate_limit["remaining"]
         else:
-            raise GithubLimitsException(
+            raise GithubLimitsError(
                 f"{GITHUB_API_URL}/rate_limit returned non 200 status code")
 
     def update_remaining(self):

@@ -1,2 +1,2 @@
 from .app import run
-del app
+__all__ = ["run"]
