@@ -15,9 +15,8 @@ from src.utils import (
 class FormatFullName(TestCase):
     def test_format_full_name(self):
         self.assertEqual(format_full_name("facebook/react"), "facebook-react")
-        self.assertEqual(format_full_name("nodejs/node"), "nodejs-node")
         self.assertEqual(format_full_name(
-            "gorilla/websocket"), "gorilla-websocket")
+            "username/example.com"), "username-example-com")
 
 
 class GetSSHKeyContent(TestCase):

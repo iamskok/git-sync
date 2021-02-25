@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 from dotenv import load_dotenv
 
@@ -34,7 +35,7 @@ def get_ssh_key_content():
 
 
 def format_full_name(full_name):
-    return full_name.replace("/", "-", 1)
+    return re.sub(r"\/|\.", "-", full_name)
 
 
 class InvalidHostError(Exception):
