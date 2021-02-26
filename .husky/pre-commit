@@ -1,0 +1,8 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+python3 manage.py \
+  --format \
+  --lint \
+  --dockerlint \
+  --prettier

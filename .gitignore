@@ -4,3 +4,4 @@ state.json
 repos
 *.log
 __pycache__
+node_modules
