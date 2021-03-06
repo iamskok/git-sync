@@ -1,7 +1,6 @@
 .env
-TODO.md
-state.json
-repos
-*.log
 __pycache__
 node_modules
+TODO.md
+data/*
+!data/.gitkeep

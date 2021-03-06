@@ -112,6 +112,7 @@ def prettier():
         shell=True
     )
 
+
 def commitlint():
     subprocess.call(
         "yarn commitlint --edit",

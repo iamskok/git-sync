@@ -13,8 +13,8 @@ Assuming SSH keys are stored in `~/.ssh` directory.
 
 ```
 docker build \
-    --build-arg ssh_private_key="$(cat ~/.ssh/id_rsa)" \
-    --build-arg ssh_public_key="$(cat ~/.ssh/id_rsa.pub)" \
+    --build-arg SSH_PRIVATE_KEY="$(cat ~/.ssh/id_rsa)" \
+    --build-arg SSH_PUBLIC_KEY="$(cat ~/.ssh/id_rsa.pub)" \
     --tag git-sync .
 ```
 
@@ -23,8 +23,7 @@ docker build \
 ```sh
 docker run -it \
     --env-file=".env" \
-    -v $PWD/repos:/app/repos \
-    -v $PWD/logs:/app/logs \
+    -v $PWD/data:/app/data \
     git-sync
 ```
 
