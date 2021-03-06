@@ -1,6 +1,7 @@
 import os
 import re
 import subprocess
+from subprocess import CalledProcessError
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -44,19 +45,28 @@ class InvalidHostError(Exception):
 
 def add_known_host(host):
     # Handle custom port case
-    if host.find(":") > -1:
-        host, port, *_ = host.split(":")
-        exit_code = subprocess.call(
-            f"ssh-keyscan -p {port} -H {host} >> {KNOWN_HOSTS_PATH}",
-            shell=True
-        )
-    else:
-        exit_code = subprocess.call(
-            f"ssh-keyscan -H {host} >> {KNOWN_HOSTS_PATH}",
-            shell=True
-        )
+    try:
+        if host.find(":") > -1:
+            host, port, *_ = host.split(":")
+            output = subprocess.check_output(
+                f"ssh-keyscan -p {port} -H {host} >> {KNOWN_HOSTS_PATH}",
+                shell=True,
+                stderr=subprocess.STDOUT
+            )
+        else:
+            output = subprocess.check_output(
+                f"ssh-keyscan -H {host} >> {KNOWN_HOSTS_PATH}",
+                shell=True,
+                stderr=subprocess.STDOUT
+            )
 
-    if exit_code != 0:
+        # Exception is thrown when status code is not equal to `0`.
+        # Linux `ssh-keyscan` does not throw Exception so we are checking its output message instead
+        if "not known" in output.decode('utf-8'):
+            raise CalledProcessError(1, "ssh-keyscan")
+
+    # MacOS `ssh-keyscan` throws Exception
+    except CalledProcessError:
         raise InvalidHostError(f"Invalid host name {host}")
 
 
