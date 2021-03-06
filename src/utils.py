@@ -74,10 +74,22 @@ def is_repo_blacklisted(repo, blacklist=REPOS_BLACKLIST):
     return False if blacklist is None else repo in blacklist.split(",")
 
 
-def fix_ssh_private_key(key_path):
+def fix_ssh_private_key(string):
+    pattern = re.compile(r"(\-+[A-Z\s]+\-+)", flags=re.DOTALL)
+    begin_string, end_string = pattern.findall(string)
+
+    new_key = re.sub(begin_string, "", string)
+    new_key = re.sub(end_string, "", new_key)
+    new_key = re.sub(" ", "\n", new_key.strip())
+    new_key = f"{begin_string}\n{new_key}\n{end_string}\n"
+
+    return new_key
+
+
+def rewrite_ssh_private_key(key_path):
     """
-        The utility that fixes new line ussie with env variables
-        passed inside the `CMD` directive of Dockerfile.
+        Fixes new line issue with env variables
+        in `CMD` directive of Dockerfile.
 
         - preserves begin and end strings
         - replaces all instances of whitespace with new lines
@@ -86,14 +98,7 @@ def fix_ssh_private_key(key_path):
 
     with open(key_path, "r", encoding="utf-8") as key:
         content = key.read()
-
-        pattern = re.compile(r"(\-+[A-Z\s]+\-+)", flags=re.DOTALL)
-        begin_string, end_string = pattern.findall(content)
-
-        new_key = re.sub(begin_string, "", content)
-        new_key = re.sub(end_string, "", new_key)
-        new_key = re.sub(" ", "\n", new_key.strip())
-        new_key = f"{begin_string}\n{new_key}\n{end_string}\n"
+        new_key = fix_ssh_private_key(content)
 
     with open(key_path, "w", encoding="utf-8") as key_file:
         key_file.write(new_key)

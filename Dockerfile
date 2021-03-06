@@ -20,7 +20,7 @@ RUN mkdir -p /root/.ssh && \
   chmod 0700 /root/.ssh
 
 CMD echo ${SSH_PRIVATE_KEY} > /root/.ssh/id_rsa && \
-  python3 -c "import src.utils; src.utils.fix_ssh_private_key('/root/.ssh/id_rsa')" && \
+  python3 -c "import src.utils; src.utils.rewrite_ssh_private_key('/root/.ssh/id_rsa')" && \
   echo ${SSH_PUBLIC_KEY} > /root/.ssh/id_rsa.pub && \
   chmod 600 /root/.ssh/id_rsa && \
   chmod 600 /root/.ssh/id_rsa.pub && \
