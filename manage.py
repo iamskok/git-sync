@@ -94,7 +94,9 @@ def lint():
 
 def dockerlint():
     subprocess.call(
-        "docker run --rm -i hadolint/hadolint < Dockerfile",
+        "docker run --rm -i \
+            -v $PWD/hadolint.yaml:/root/.config/hadolint.yaml \
+            hadolint/hadolint < Dockerfile",
         shell=True
     )
 
