@@ -16,13 +16,13 @@ COPY src ./src
 
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-RUN mkdir -p ~/.ssh && \
-  chmod 0700 ~/.ssh && \
-  echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa && \
-  echo "$SSH_PUBLIC_KEY" > ~/.ssh/id_rsa.pub && \
-  chmod 600 ~/.ssh/id_rsa && \
-  chmod 600 ~/.ssh/id_rsa.pub && \
-  eval "$(ssh-agent -s)" && \
-  ssh-add ~/.ssh/id_rsa
+RUN mkdir -p /root/.ssh && \
+  chmod 0700 /root/.ssh
 
-CMD ["python3", "index.py"]
+CMD echo ${SSH_PRIVATE_KEY} > /root/.ssh/id_rsa && \
+  python3 -c "import src.utils; src.utils.fix_ssh_private_key('/root/.ssh/id_rsa')" && \
+  echo ${SSH_PUBLIC_KEY} > /root/.ssh/id_rsa.pub && \
+  chmod 600 /root/.ssh/id_rsa && \
+  chmod 600 /root/.ssh/id_rsa.pub && \
+  eval "$(ssh-agent -s)" && \
+  python3 index.py

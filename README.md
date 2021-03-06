@@ -12,10 +12,7 @@ Backup all GitHub repositories in GitLab.
 Assuming SSH keys are stored in `~/.ssh` directory.
 
 ```
-docker build \
-    --build-arg SSH_PRIVATE_KEY="$(cat ~/.ssh/id_rsa)" \
-    --build-arg SSH_PUBLIC_KEY="$(cat ~/.ssh/id_rsa.pub)" \
-    --tag git-sync .
+docker build --tag git-sync .
 ```
 
 ## Docker usage
@@ -23,6 +20,8 @@ docker build \
 ```sh
 docker run -it \
     --env-file=".env" \
+    -e SSH_PRIVATE_KEY="$(cat ~/.ssh/id_rsa)" \
+    -e SSH_PUBLIC_KEY="$(cat ~/.ssh/id_rsa.pub)" \
     -v $PWD/data:/app/data \
     git-sync
 ```
