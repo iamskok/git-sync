@@ -12,6 +12,11 @@ from src.utils import (
     fix_ssh_private_key,
 )
 
+mocks_path = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    "mocks"
+)
+
 class FormatFullName(TestCase):
     def test_format_full_name(self):
         self.assertEqual(format_full_name("facebook/react"), "facebook-react")
@@ -20,12 +25,9 @@ class FormatFullName(TestCase):
 
 
 class GetSSHKeyContent(TestCase):
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-
     @mock.patch.dict(os.environ, {
         "GITHUB_KEY_PATH": os.path.join(
-            dir_path,
-            "mocks",
+            mocks_path,
             "valid_ssh_public_key"
         )
     })
@@ -43,8 +45,7 @@ class GetSSHKeyContent(TestCase):
 
     @mock.patch.dict(os.environ, {
         "GITHUB_KEY_PATH": os.path.join(
-            dir_path,
-            "mocks",
+            mocks_path,
             "invalid_ssh_public_key"
         )
     })
@@ -57,8 +58,7 @@ class GetSSHKeyContent(TestCase):
 
     @mock.patch.dict(os.environ, {
         "GITHUB_KEY_PATH": os.path.join(
-            dir_path,
-            "mocks",
+            mocks_path,
             "non_existing_public_ssh_key"
         )
     })
@@ -69,13 +69,29 @@ class GetSSHKeyContent(TestCase):
             get_ssh_key_content,
         )
 
-
 class AddKnownHost(TestCase):
+    @mock.patch.dict(os.environ, {
+        "KNOWN_HOSTS_PATH": os.path.join(
+            mocks_path,
+            "known_hosts"
+        )
+    })
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        src.utils.KNOWN_HOSTS_PATH = os.environ["KNOWN_HOSTS_PATH"]
+        self.KNOWN_HOSTS_PATH = os.environ["KNOWN_HOSTS_PATH"]
+
     def test_add_host(self):
-        self.assertEqual(add_known_host("github.com"), None)
+        add_known_host("github.com")
+        with open(self.KNOWN_HOSTS_PATH, "r", encoding="utf-8") as known_hosts:
+            lines = known_hosts.readlines()
+            self.assertTrue(lines and "ssh-rsa" in lines[0])
 
     def test_add_host_and_port(self):
-        self.assertEqual(add_known_host("github.com:22"), None)
+        add_known_host("github.com:22")
+        with open(self.KNOWN_HOSTS_PATH, "r", encoding="utf-8") as known_hosts:
+            lines = known_hosts.readlines()
+            self.assertTrue(lines and "ssh-rsa" in lines[0])
 
     def test_invalid_host(self):
         self.assertRaises(
@@ -83,6 +99,8 @@ class AddKnownHost(TestCase):
             lambda: add_known_host("nonexistinghost123456789123456789.com"),
         )
 
+    def tearDown(self):
+        os.remove(self.KNOWN_HOSTS_PATH)
 
 class IsRepoBlacklisted(TestCase):
     blacklist = "facebook/react,nodejs/node,gorilla/websocket"
@@ -98,16 +116,14 @@ class IsRepoBlacklisted(TestCase):
     def test_undefined_blacklist(self):
         self.assertEqual(is_repo_blacklisted("gatsbyjs/gatsby", None), False)
 
+
 class FixSshPrivateKey(TestCase):
-    dir_path = os.path.dirname(os.path.realpath(__file__))
     malformed_ssh_private_key_path = os.path.join(
-        dir_path,
-        "mocks",
+        mocks_path,
         "malformed_ssh_private_key"
     )
     valid_ssh_private_key_path = os.path.join(
-        dir_path,
-        "mocks",
+        mocks_path,
         "valid_ssh_private_key"
     )
 
