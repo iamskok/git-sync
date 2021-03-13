@@ -17,6 +17,7 @@ mocks_path = os.path.join(
     "mocks"
 )
 
+
 class FormatFullName(TestCase):
     def test_format_full_name(self):
         self.assertEqual(format_full_name("facebook/react"), "facebook-react")
@@ -69,6 +70,7 @@ class GetSSHKeyContent(TestCase):
             get_ssh_key_content,
         )
 
+
 class AddKnownHost(TestCase):
     @mock.patch.dict(os.environ, {
         "KNOWN_HOSTS_PATH": os.path.join(
@@ -101,6 +103,7 @@ class AddKnownHost(TestCase):
 
     def tearDown(self):
         os.remove(self.KNOWN_HOSTS_PATH)
+
 
 class IsRepoBlacklisted(TestCase):
     blacklist = "facebook/react,nodejs/node,gorilla/websocket"

@@ -1,0 +1,59 @@
+{
+  "initial": {
+    "is_github_key_added": false,
+    "is_github_known_host": false,
+    "is_gitlab_known_host": false,
+    "repos": {}
+  },
+  "read": {
+    "is_github_key_added": true,
+    "is_github_known_host": true,
+    "is_gitlab_known_host": true,
+    "repos": {
+      "repo-1": {
+        "is_gitlab_project_created": true,
+        "is_gitlab_remote_created": true,
+        "updated": 1563114087.0,
+        "is_pushed_to_gitlab": true
+      },
+      "repo-2": {
+        "is_gitlab_project_created": true,
+        "is_gitlab_remote_created": true,
+        "updated": 1572905602.0,
+        "is_pushed_to_gitlab": true
+      }
+    }
+  },
+  "write": {
+    "is_github_key_added": true,
+    "is_github_known_host": true,
+    "is_gitlab_known_host": true,
+    "repos": {
+      "repo-1": {
+        "is_gitlab_project_created": true,
+        "is_gitlab_remote_created": true,
+        "updated": 1563112222.0,
+        "is_pushed_to_gitlab": true
+      },
+      "repo-2": {
+        "is_gitlab_project_created": true,
+        "is_gitlab_remote_created": true,
+        "updated": 1572903333.0,
+        "is_pushed_to_gitlab": false
+      }
+    }
+  },
+  "get_repo_attr": {
+    "is_github_key_added": true,
+    "is_github_known_host": true,
+    "is_gitlab_known_host": true,
+    "repos": {
+      "repo-1": {
+        "is_gitlab_project_created": true,
+        "is_gitlab_remote_created": true,
+        "updated": 1563112222.0,
+        "is_pushed_to_gitlab": true
+      }
+    }
+  }
+}

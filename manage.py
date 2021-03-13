@@ -101,7 +101,7 @@ def dockerlint():
     )
 
 
-def format():
+def format_py():
     subprocess.call(
         "autopep8 --in-place --recursive .",
         shell=True
@@ -138,7 +138,7 @@ def cli():
     if options.dockerlint:
         dockerlint()
     if options.format:
-        format()
+        format_py()
     if options.prettier:
         prettier()
     if options.commitlint:
@@ -147,4 +147,5 @@ def cli():
         test()
 
 
-cli()
+if __name__ == '__main__':
+    cli()
