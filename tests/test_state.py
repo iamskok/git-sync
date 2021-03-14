@@ -68,3 +68,57 @@ class TestState(TestCase):
             state.get_repo_attr("repo-1", "non_existing_repo_attribute"),
             None
         )
+
+    @patch(
+        "json.loads",
+        lambda *args, **kwargs: get_mock_content("state.json", "set_repo_attr")
+    )
+    def test_set_repo_attr(self):
+        src.state.STATE_PATH = state_mock_path
+        state = State()
+
+        write_state_path = os.path.join(MOCKS_PATH, "write_state.json")
+        src.state.STATE_PATH = write_state_path
+
+        state.set_repo_attr("repo-1", "is_gitlab_project_created", False)
+        state.set_repo_attr("repo-2", "is_pushed_to_gitlab", True)
+
+        self.assertEqual(
+            state.get_repo_attr("repo-1", "is_gitlab_project_created"),
+            False
+        )
+        self.assertEqual(
+            state.get_repo_attr("repo-2", "is_pushed_to_gitlab"),
+            True
+        )
+
+        os.remove(write_state_path)
+
+    @patch(
+        "json.loads",
+        lambda *args, **kwargs: get_mock_content(
+            "state.json", "set_attr_1")
+    )
+    def test_set_attr(self):
+        src.state.STATE_PATH = state_mock_path
+        state = State()
+
+        write_state_path = os.path.join(MOCKS_PATH, "write_state.json")
+        src.state.STATE_PATH = write_state_path
+
+        state.set_attr("is_github_key_added", True)
+        with open(write_state_path, "r", encoding="utf-8") as written_state:
+            self.assertEqual(
+                get_mock_content("state.json", "set_attr_1_assertion"),
+                loads(written_state.read())
+            )
+            os.remove(write_state_path)
+
+        state.set_attr("new_attribute", False)
+
+        with open(write_state_path, "r", encoding="utf-8") as written_state:
+            self.assertEqual(
+                get_mock_content("state.json", "set_attr_2_assertion"),
+                loads(written_state.read())
+            )
+            os.remove(write_state_path)

@@ -16,11 +16,11 @@ class State():
         if read:
             self.read()
 
-    def update(self, key, value=True):
+    def set_attr(self, key, value=True):
         self.__dict__[key] = value
         self.write()
 
-    def update_repo(self, name, key, value=True):
+    def set_repo_attr(self, name, key, value=True):
         if name not in self.repos:
             self.repos[name] = {}
 

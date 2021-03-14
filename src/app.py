@@ -29,18 +29,18 @@ def git_sync():
 
     if not state.is_github_key_added:
         if is_github_key_added():
-            state.update("is_github_key_added")
+            state.set_attr("is_github_key_added")
             gh_limiter.update_remaining()
         else:
             raise Exception("GitHub key was not added.")
 
     if not state.is_github_known_host:
         add_known_host(GITHUB_URL)
-        state.update("is_github_known_host")
+        state.set_attr("is_github_known_host")
 
     if not state.is_gitlab_known_host:
         add_known_host(f"{GITLAB_URL}:{GITLAB_SSH_PORT}")
-        state.update("is_gitlab_known_host")
+        state.set_attr("is_gitlab_known_host")
 
     for repo in g.get_user().get_repos():
         gh_limiter.update_remaining()
@@ -58,23 +58,23 @@ def git_sync():
                 if not state.get_repo_attr(
                         full_name, "is_gitlab_project_created"):
                     create_gitlab_project(full_name)
-                    state.update_repo(full_name, "is_gitlab_project_created")
+                    state.set_repo_attr(full_name, "is_gitlab_project_created")
 
                 if not state.get_repo_attr(
                         full_name, "is_gitlab_remote_created"):
                     add_gitlab_remote(repo_path, full_name)
-                    state.update_repo(full_name, "is_gitlab_remote_created")
+                    state.set_repo_attr(full_name, "is_gitlab_remote_created")
 
             elif pushed_at > state.get_repo_attr(full_name, "updated"):
                 print("Repo was updated since the last download.")
                 pull_github_repo(repo_path)
-                state.update_repo(full_name, "is_pushed_to_gitlab", False)
+                state.set_repo_attr(full_name, "is_pushed_to_gitlab", False)
 
-            state.update_repo(full_name, "updated", pushed_at)
+            state.set_repo_attr(full_name, "updated", pushed_at)
 
             if not state.get_repo_attr(full_name, "is_pushed_to_gitlab"):
                 push_gitlab_repo(repo_path)
-                state.update_repo(full_name, "is_pushed_to_gitlab")
+                state.set_repo_attr(full_name, "is_pushed_to_gitlab")
 
 
 def run():
