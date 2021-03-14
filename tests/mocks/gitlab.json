@@ -1,0 +1,11 @@
+{
+  "remote_branches": [
+    "  origin/HEAD -> origin/master",
+    "  origin/featute/canvas-video-audio",
+    "  origin/master",
+    "  origin/renovate/feat/header  ",
+    "  origin/renovate/configure",
+    "origin-2/my-awesome-slider",
+    ""
+  ]
+}

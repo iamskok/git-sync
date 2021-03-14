@@ -15,25 +15,30 @@ GITLAB_SSH_PORT = os.environ.get("GITLAB_SSH_PORT")
 GITLAB_HANDLE = os.environ.get("GITLAB_HANDLE")
 
 
+def get_default_branch(branches):
+    for branch in branches:
+        if "->" in branch:
+            return branch.split("->")[1].split("/")[1].strip()
+
+
+def get_repo_branches(branches):
+    def filter_fn(branch): return branch.strip() and "->" not in branch
+    def format_fn(branch): return "/".join(branch.strip().split("/")[1:])
+
+    return list(map(format_fn, filter(filter_fn, branches)))
+
+
 def push_gitlab_repo(repo_path):
-    all_remote_branches = subprocess.check_output(
+    remote_branches = subprocess.check_output(
         f"cd {repo_path} && \
         git branch --remote",
         shell=True
     ).decode("utf-8").split("\n")
 
-    default_branch = [
-        branch.split("->")[1].split("/")[1].strip()
-        for branch in all_remote_branches
-        if "->" in branch
-    ][0]
-    all_remote_branches = [
-        branch.strip().split("/")[1]
-        for branch in all_remote_branches
-        if branch.strip() and "->" not in branch
-    ]
+    default_branch = get_default_branch(remote_branches)
+    branches = get_repo_branches(remote_branches)
 
-    for branch in all_remote_branches:
+    for branch in branches:
         command = " && ".join([
             f"cd {repo_path}",
             "git fetch --all",
@@ -52,7 +57,9 @@ def create_gitlab_project(repo_name):
     response = requests.post(
         f"{GITLAB_URL_PROTOCOL}://{GITLAB_URL}:{GITLAB_HTTP_PORT}/api/v4/projects?name={repo_name}",
         headers={
-            "PRIVATE-TOKEN": GITLAB_ACCESS_TOKEN})
+            "PRIVATE-TOKEN": GITLAB_ACCESS_TOKEN
+        }
+    )
 
     if response.status_code == HttpStatusCode.CREATED.value:
         print(f"{repo_name} project was succesfully created in GitLab.")
