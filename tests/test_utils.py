@@ -52,10 +52,8 @@ class GetSSHKeyContent(TestCase):
     })
     def test_invalid_ssh_key(self):
         src.utils.GITHUB_KEY_PATH = os.environ["GITHUB_KEY_PATH"]
-        self.assertRaises(
-            InvalidSSHKeyError,
-            get_ssh_key_content,
-        )
+        with self.assertRaises(InvalidSSHKeyError):
+            get_ssh_key_content()
 
     @mock.patch.dict(os.environ, {
         "GITHUB_KEY_PATH": os.path.join(
@@ -65,10 +63,8 @@ class GetSSHKeyContent(TestCase):
     })
     def test_non_existing_ssh_key(self):
         src.utils.GITHUB_KEY_PATH = os.environ["GITHUB_KEY_PATH"]
-        self.assertRaises(
-            FileNotFoundError,
-            get_ssh_key_content,
-        )
+        with self.assertRaises(FileNotFoundError):
+            get_ssh_key_content()
 
 
 class AddKnownHost(TestCase):
