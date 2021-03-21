@@ -7,9 +7,9 @@ MOCKS_PATH = os.path.join(
 )
 
 
-def get_mock_content(file_name, key):
+def get_mock_content(file_name, key=None):
     path = os.path.join(MOCKS_PATH, file_name)
     with open(path, "r", encoding="utf-8") as content:
         if key:
             return loads(content.read())[key]
-        return content.read()
+        return loads(content.read())
