@@ -20,6 +20,7 @@ response_args_mock = {
 src.github_rate_limiter.GithubRateLimiter.GITHUB_API_URL = GITHUB_API_URL
 src.github_rate_limiter.GithubRateLimiter.GITHUB_ACCESS_TOKEN = GITHUB_ACCESS_TOKEN
 
+
 class TestState(TestCase):
     @responses.activate
     def test_init_limits(self):
