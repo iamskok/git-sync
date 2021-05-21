@@ -18,14 +18,14 @@ jobs:
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v2
-        with:
-          python-version: '3.9.4'
+        # with:
+        #   python-version: '3.9.4'
 
       - name: Install PIP dependencies
         run: pip3 install -r requirements.txt
 
       - name: Run tests
-        run: python3 manage.py -t
+        run: python3 -m unittest
 
   release:
     runs-on: ubuntu-latest
