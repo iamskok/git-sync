@@ -2,5 +2,5 @@ requests==2.26.0
 PyGithub==1.54.1
 python-dotenv==0.18.0
 autopep8==1.5.7
-pylint==2.9.3
+pylint==2.9.4
 responses==0.13.3
