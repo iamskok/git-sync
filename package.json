@@ -6,7 +6,7 @@
   "devDependencies": {
     "@commitlint/cli": "13.2.0",
     "@commitlint/config-conventional": "13.2.0",
-    "husky": "6.0.0",
+    "husky": "7.0.4",
     "is-ci": "3.0.1",
     "prettier": "2.4.1"
   }
