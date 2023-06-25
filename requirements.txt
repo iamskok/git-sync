@@ -1,4 +1,4 @@
-requests==2.26.0
+requests==2.31.0
 PyGithub==1.55
 python-dotenv==0.19.1
 autopep8==1.5.7
