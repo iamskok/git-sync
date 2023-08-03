@@ -1,5 +1,5 @@
 requests==2.26.0
-PyGithub==1.55
+PyGithub==1.59.1
 python-dotenv==0.19.1
 autopep8==1.5.7
 pylint==2.11.1
